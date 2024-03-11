@@ -16,7 +16,7 @@ import time as t
 #creating the class named project
 class project: 
     # API connection
-    api_key='AIzaSyCujiyPxAVYK_ctAQOihWfNI6bNhsH6Fso'
+    api_key=''
     api_service_name = "youtube"
     api_version = "v3"
     youtube = googleapiclient.discovery.build(
