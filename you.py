@@ -204,7 +204,7 @@ def create_dump(chn_out,filename):
 
 #creating database youtube1 ,in that creating collection named youtubedata and writing json data to MONGODB
 def update_mongo(doc_name):
-    uri = "mongodb+srv://yaazhisai:yaazhguvi@cluster0.d8lqkub.mongodb.net/?retryWrites=true&w=majority"
+    uri = "mongodb+srv://yaazhisai:password@cluster0.d8lqkub.mongodb.net/?retryWrites=true&w=majority"
 
     # Create a new client and connect to the server
     client = MongoClient(uri, server_api=ServerApi('1'))
