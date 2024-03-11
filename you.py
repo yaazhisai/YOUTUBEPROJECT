@@ -6,24 +6,25 @@ from pprint import pprint
 import streamlit as st
 import pymongo
 import json
+import pandas as pd
 from pymongo import MongoClient, InsertOne
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 import mysql.connector
 import time as t
 
-
 #creating the class named project
+
 class project: 
-    # API connection
+    # def __init__(self):
+    #connection
     api_key=''
     api_service_name = "youtube"
     api_version = "v3"
     youtube = googleapiclient.discovery.build(
             api_service_name, api_version,developerKey=api_key)
-
-    # creating get_channel_info to fetch channel details from youtube using youtube api.
     
+     # creating get_channel_info to fetch channel details from youtube using youtube api.
     def get_channel_info(self, channelid):
         data={}
         
@@ -48,7 +49,7 @@ class project:
         return data
 
     # creating get_playlist_info to fetch playlistid by giving channelid to playlistItems.
-    
+
     def get_playlist_info(self, channelid):
         request = self.youtube.channels().list(
         part="snippet,contentDetails",
@@ -65,7 +66,6 @@ class project:
                 )
         response1=request1.execute()
         #pprint(response1)
-        #Fetching neccesary details from playlistItems response
         data={
         "playlistid":playlist_id,
         "channel_id":response['items'][0]['id'],
@@ -75,9 +75,8 @@ class project:
 
      # creating get_video_info to fetch videodetails .
      # To get all the videoids ,we need to use playlistid.
-    
     def get_video_info(self, channelid):
-        video_emp=""
+        emp_s=""
         Video_list=[]
         videodic={}
         counter=0
@@ -90,7 +89,7 @@ class project:
         next_page_token=None
 
         while True:
-            video_emp=""
+            emp_s=""
             request1 = self.youtube.playlistItems().list(
                 part="snippet",
                 playlistId=playlist_id,
@@ -101,23 +100,23 @@ class project:
             for i in response1['items']:
                 Video_Id=i['snippet']['resourceId']['videoId']
                 Video_list.append(Video_Id)
-                if video_emp!="":    
-                    video_emp=video_emp+","+Video_Id
+                if emp_s!="":
+                    emp_s=emp_s+","+Video_Id
                 else:
-                    video_emp=video_emp+Video_Id
+                    emp_s=emp_s+Video_Id
                 next_page_token=response1.get('nextPageToken')
 
                 request2=self.youtube.videos().list(
                 part="snippet,statistics,contentDetails",
-                id=video_emp
+                id=emp_s
                 )
                 response2=request2.execute()
-
-            # For every videoid,we are getting all the details.
+             # For every videoid,we are getting all the details.
+                
             for i in response2['items']:
                 videodic[f'Video_Id_{counter+1}']={
                     "Video_Id":i['id'],
-                    "playlist_id":response['items'][0]['contentDetails']['relatedPlaylists']['uploads'],
+                        #"playlist_id":response['items'][0]['contentDetails']['relatedPlaylists']['uploads'],
                     "Video_Name":i['snippet']['title'],
                     "Video_Description":i['snippet']['description'],  
                     "Tags":i['snippet'].get('tags'),
@@ -139,7 +138,8 @@ class project:
 
         return videodic
     
-   # this function is to covert the alphanumerical to seconds format 
+
+    # this function is to covert the alphanumerical to seconds format 
     #this function gets duration of video and returns duration in seconds and is called inside get_video_info function.
     def get_duration_info(self,duration):
         H=0
@@ -201,10 +201,9 @@ def final(channel_id):
 def create_dump(chn_out,filename):
    with open(filename,'w') as js:
          json.dump(chn_out, js)
-
 #creating database youtube1 ,in that creating collection named youtubedata and writing json data to MONGODB
 def update_mongo(doc_name):
-    uri = "mongodb+srv://yaazhisai:password@cluster0.d8lqkub.mongodb.net/?retryWrites=true&w=majority"
+    uri = "mongodb+srv://username:password@cluster0.d8lqkub.mongodb.net/?retryWrites=true&w=majority"
 
     # Create a new client and connect to the server
     client = MongoClient(uri, server_api=ServerApi('1'))
@@ -230,7 +229,8 @@ def update_mongo(doc_name):
 
 
 # SQL CONNECTION 
-# creating database ss3 and creating channel,video,playlist and comment table         
+# creating database ss3 and creating channel,video,playlist and comment table 
+         
 def sql_connection():
     mydb=mysql.connector.connect(
             host='localhost',
@@ -248,6 +248,7 @@ def sql_connection():
     mycursor.execute("CREATE TABLE Comment (comment_id VARCHAR(255) PRIMARY KEY,videoid VARCHAR(255),FOREIGN KEY(videoid)REFERENCES Video(video_id),comment_text TEXT,comment_author VARCHAR(255),comment_published_date DATETIME)")
     
     #print("DATABASE AND TABLE CREATED SUCCESSFULLY")
+
 # inserting values into table
 def table_insert(doc_name):
     mydb=mysql.connector.connect(
@@ -291,7 +292,7 @@ def table_insert(doc_name):
 
     query4="INSERT INTO Comment(comment_id,videoid,comment_text,comment_author,comment_published_date)VALUES(%s,%s,%s,%s,%s)"
 
-    # vc is the videocount
+
     vc=int(mydict['Channel']['Channel_Name']['video_count'])
 
     for i in range(vc):
@@ -328,7 +329,7 @@ st.sidebar.header(":blue[YOUTUBE CHANNEL ID]")
 c=st.sidebar.text_input("ENTER THE CHANNEL ID:")
 chan_b=st.sidebar.button("CLICK TO VIEW CHANNEL DETAILS")
 mongo_b=st.sidebar.button("UPLOAD TO MONGO")
-sql_b=st.sidebar.button("MOVE TO SQL DB:")
+sql_b=st.sidebar.button("MOVE TO SQL DB")
 if c !="":
     out=final(c)
     # x have channelid
@@ -338,7 +339,7 @@ if c !="":
 
     if chan_b:
         try:
-            with st.spinner("Loading the channel details ...."):
+            with st.spinner("loading"):
                 t.sleep(15)
             st.json(out['Channel'])
             st.snow()
@@ -348,8 +349,6 @@ if c !="":
     if mongo_b :
         create_dump(out,filename)
         try:
-            with st.spinner("UPDATE IN PROGRESS...."):
-                t.sleep(15)
             update_mongo(filename)
             st.success("MONGODB UPDATED SUCCESSFULLY")
             st.snow()
@@ -358,12 +357,10 @@ if c !="":
 
                     
     if sql_b:
-        try:
             table_insert(filename)
             st.success("DATA UPLOADED TO SQL SUCESSFULLY")
-            st.snow()
-        except:
-            st.error("DATA UPLOAD TO DB FAILED")
+            #st.snow()
+            #st.error("DATA UPLOAD TO DB FAILED")
             
        
 query_list=["                                                          ",
@@ -392,49 +389,52 @@ with st.container():
         #mycursor.execute("select Channel.channel_name,Channel.channel_id,Video.video_name from Channel JOIN Video ON Channel.channel_id=Video.channel_id")
         mycursor.execute("select Channel.channel_name,Video.video_name from Playlist JOIN Video on Playlist.playlist_id = Video.Playlistid JOIN Channel ON Channel.channel_id = Playlist.channelid") 
         out=mycursor.fetchall()
-        st.table(out)
+        df=pd.DataFrame(out,columns=['Channel Name',' Video Name'])
+        st.write(df)
     elif option=='2.Which channels have the most number of videos, and how many videos do they have?':
         mycursor.execute("select channel_name,Channel.channel_id,Channel.video_count from Channel ORDER BY video_count DESC")
         out=mycursor.fetchall()
-        st.table(out)
+        df=pd.DataFrame(out, columns=['Channel Name', 'Channel Id', 'Video Count'])
+        st.write(df)
     elif option=='3.What are the top 10 most viewed videos and their respective channels?':
         mycursor.execute("select Channel.channel_name,Video.video_id,Video.view_count from Playlist JOIN Video ON Playlist.playlist_id=Video.playlistid JOIN Channel ON Channel.channel_id=Playlist.channelid  ORDER BY view_count DESC LIMIT 10")
         out=mycursor.fetchall()
-        st.table(out)
+        df=pd.DataFrame(out, columns=['Channel Name', 'Video Id', 'View Count'])
+        st.write(df)
     elif option=='4.How many comments were made on each video, and what are their corresponding video names?':
         mycursor.execute("select video_name,comment_count from Video")
         out=mycursor.fetchall()
-        st.table(out)
+        df=pd.DataFrame(out, columns=['Video Name', 'Comment Count'])
+        st.write(df)
     elif option=='5.Which videos have the highest number of likes, and what are their corresponding channel names?':
-        mycursor.execute("select Channel.channel_name,Video.like_count from Channel JOIN Video ON Channel.channel_id=Video.channel_id ORDER BY Video.like_count DESC")
+        mycursor.execute("select Channel.channel_name,Video.video_name, Video.like_count from Channel JOIN Video ON Channel.channel_id=Video.channel_id ORDER BY Video.like_count DESC")
         out=mycursor.fetchall()
-        st.table(out)
+        df=pd.DataFrame(out, columns=['Channel Name', 'Video Name', 'Like Count'])
+        st.write(df)
     elif option=='6.What is the total number of likes and dislikes for each video, and what are their corresponding video names?':
          mycursor.execute("select video_name,like_count from Video")
          out=mycursor.fetchall()
-         st.table(out)
+         df=pd.DataFrame(out, columns=['Video Name', 'Like Count'])
+         st.write(df)
+         
     elif option=='7.What is the total number of views for each channel, and what are their corresponding channel names?':
         mycursor.execute("select Channel.channel_name,Channel.channel_views from Channel Group by Channel.channel_name")
         out=mycursor.fetchall()
-        st.table(out)
+        df=pd.DataFrame(out, columns=['Channel Name', 'Channel Views'])
+        st.write(df)
     elif option=='8.What are the names of all the channels that have published videos in the year 2022?':
-        mycursor.execute("select Channel.channel_name,Video.published_date from Playlist JOIN Video ON Playlist.playlist_id=Video.playlistid JOIN Channel ON Channel.channel_id=Playlist.channelid where substr(Video.published_date,1,4) = '2022'")
+        mycursor.execute("select Channel.channel_name,video_name, Video.published_date from Playlist JOIN Video ON Playlist.playlist_id=Video.playlistid JOIN Channel ON Channel.channel_id=Playlist.channelid where substr(Video.published_date,1,4) = '2022'")
         out=mycursor.fetchall()
-        st.table(out)
+        df=pd.DataFrame(out, columns=['Channel Name', 'Video Name', 'Video Published Date'])
+        st.write(df)
     elif option=='9.What is the average duration of all videos in each channel, and what are their corresponding channel names?':
          mycursor.execute("select Channel.channel_name,AVG(Video.duration) from Video join Playlist on Playlist.playlist_id = Video.Playlistid JOIN Channel ON Channel.channel_id = Playlist.channelid GROUP BY Channel.channel_name")
          out=mycursor.fetchall()
-         st.table(out)
+         df=pd.DataFrame(out, columns=['Channel Name', 'Avg Video Duration'])
+         st.write(df)
 
     elif option=='10.Which videos have the highest number of comments, and what are their corresponding channel names?':
         mycursor.execute("select Channel.channel_name,MAX(Video.comment_count) from Playlist JOIN Video ON Playlist.playlist_id= Video.playlistid JOIN Channel ON Channel.channel_id=Playlist.channelid GROUP BY Channel.channel_name")
         out=mycursor.fetchall()
-        st.table(out)
-
-
-         
-
-
-    
-
-        
+        df=pd.DataFrame(out, columns=['Channel Name', 'Comment Count'])
+        st.write(df)
