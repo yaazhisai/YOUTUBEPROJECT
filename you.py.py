@@ -1,3 +1,4 @@
+# importing all the packages
 import os
 import googleapiclient.discovery
 import googleapiclient.errors
@@ -12,15 +13,16 @@ import mysql.connector
 import time as t
 
 
-
+#creating the class named project
 class project: 
-    # def __init__(self):
-    #connection
+    # API connection
     api_key='AIzaSyCujiyPxAVYK_ctAQOihWfNI6bNhsH6Fso'
     api_service_name = "youtube"
     api_version = "v3"
     youtube = googleapiclient.discovery.build(
             api_service_name, api_version,developerKey=api_key)
+
+    # creating get_channel_info to fetch channel details from youtube using youtube api.
     
     def get_channel_info(self, channelid):
         data={}
@@ -32,7 +34,7 @@ class project:
         
         response = request.execute()
         #pprint(response)
-
+        # selecting details of channel from response.
         data['Channel_Name']={"channel_name":response['items'][0]["snippet"]["title"],
             "channel_id":response['items'][0]['id'],
             "subscription_count":response['items'][0]['statistics']['subscriberCount'],
@@ -45,7 +47,8 @@ class project:
         }
         return data
 
-
+    # creating get_playlist_info to fetch playlistid by giving channelid to playlistItems.
+    
     def get_playlist_info(self, channelid):
         request = self.youtube.channels().list(
         part="snippet,contentDetails",
@@ -62,6 +65,7 @@ class project:
                 )
         response1=request1.execute()
         #pprint(response1)
+        #Fetching neccesary details from playlistItems response
         data={
         "playlistid":playlist_id,
         "channel_id":response['items'][0]['id'],
@@ -69,9 +73,11 @@ class project:
         }
         return data
 
-
+     # creating get_video_info to fetch videodetails .
+     # To get all the videoids ,we need to use playlistid.
+    
     def get_video_info(self, channelid):
-        emp_s=""
+        video_emp=""
         Video_list=[]
         videodic={}
         counter=0
@@ -84,7 +90,7 @@ class project:
         next_page_token=None
 
         while True:
-            emp_s=""
+            video_emp=""
             request1 = self.youtube.playlistItems().list(
                 part="snippet",
                 playlistId=playlist_id,
@@ -95,22 +101,23 @@ class project:
             for i in response1['items']:
                 Video_Id=i['snippet']['resourceId']['videoId']
                 Video_list.append(Video_Id)
-                if emp_s!="":
-                    emp_s=emp_s+","+Video_Id
+                if video_emp!="":    
+                    video_emp=video_emp+","+Video_Id
                 else:
-                    emp_s=emp_s+Video_Id
+                    video_emp=video_emp+Video_Id
                 next_page_token=response1.get('nextPageToken')
 
                 request2=self.youtube.videos().list(
                 part="snippet,statistics,contentDetails",
-                id=emp_s
+                id=video_emp
                 )
                 response2=request2.execute()
 
+            # For every videoid,we are getting all the details.
             for i in response2['items']:
                 videodic[f'Video_Id_{counter+1}']={
                     "Video_Id":i['id'],
-                        #"playlist_id":response['items'][0]['contentDetails']['relatedPlaylists']['uploads'],
+                    "playlist_id":response['items'][0]['contentDetails']['relatedPlaylists']['uploads'],
                     "Video_Name":i['snippet']['title'],
                     "Video_Description":i['snippet']['description'],  
                     "Tags":i['snippet'].get('tags'),
@@ -132,7 +139,8 @@ class project:
 
         return videodic
     
-
+   # this function is to covert the alphanumerical to seconds format 
+    #this function gets duration of video and returns duration in seconds and is called inside get_video_info function.
     def get_duration_info(self,duration):
         H=0
         M=0
@@ -150,7 +158,7 @@ class project:
         #print(res)
         return res
 
-
+    #this function gets videoid as input and returns 100 comments and is called inside get_video_info to display comments after each video details
     def get_comments_info(self, videoid):
         comments={}
 
@@ -176,7 +184,7 @@ class project:
             pass
 
         return comments
-
+#this function is to create object pr for class project and to call all the functions
 def final(channel_id):
     pr = project()
     channel=pr.get_channel_info(channel_id)
@@ -189,11 +197,12 @@ def final(channel_id):
                     'Videos': video_response}
     return final_output
     
-
+# converting dict to json file format
 def create_dump(chn_out,filename):
    with open(filename,'w') as js:
          json.dump(chn_out, js)
 
+#creating database youtube1 ,in that creating collection named youtubedata and writing json data to MONGODB
 def update_mongo(doc_name):
     uri = "mongodb+srv://yaazhisai:yaazhguvi@cluster0.d8lqkub.mongodb.net/?retryWrites=true&w=majority"
 
@@ -221,7 +230,7 @@ def update_mongo(doc_name):
 
 
 # SQL CONNECTION 
-         
+# creating database ss3 and creating channel,video,playlist and comment table         
 def sql_connection():
     mydb=mysql.connector.connect(
             host='localhost',
@@ -239,7 +248,7 @@ def sql_connection():
     mycursor.execute("CREATE TABLE Comment (comment_id VARCHAR(255) PRIMARY KEY,videoid VARCHAR(255),FOREIGN KEY(videoid)REFERENCES Video(video_id),comment_text TEXT,comment_author VARCHAR(255),comment_published_date DATETIME)")
     
     #print("DATABASE AND TABLE CREATED SUCCESSFULLY")
-
+# inserting values into table
 def table_insert(doc_name):
     mydb=mysql.connector.connect(
         host='localhost',
@@ -282,7 +291,7 @@ def table_insert(doc_name):
 
     query4="INSERT INTO Comment(comment_id,videoid,comment_text,comment_author,comment_published_date)VALUES(%s,%s,%s,%s,%s)"
 
-
+    # vc is the videocount
     vc=int(mydict['Channel']['Channel_Name']['video_count'])
 
     for i in range(vc):
@@ -313,7 +322,7 @@ def table_insert(doc_name):
         except:
             pass
 
-
+#streamlit code
 st.title(":blue[GUVI PROJECT1:YOUTUBE DATA HARVESTING]")
 st.sidebar.header(":blue[YOUTUBE CHANNEL ID]")
 c=st.sidebar.text_input("ENTER THE CHANNEL ID:")
@@ -322,13 +331,14 @@ mongo_b=st.sidebar.button("UPLOAD TO MONGO")
 sql_b=st.sidebar.button("MOVE TO SQL DB:")
 if c !="":
     out=final(c)
+    # x have channelid
     x=out['Channel']['Channel_Name']['channel_id']
     filename=x+".json"
     print(filename)
 
     if chan_b:
         try:
-            with st.spinner("loading"):
+            with st.spinner("Loading the channel details ...."):
                 t.sleep(15)
             st.json(out['Channel'])
             st.snow()
@@ -338,6 +348,8 @@ if c !="":
     if mongo_b :
         create_dump(out,filename)
         try:
+            with st.spinner("UPDATE IN PROGRESS...."):
+                t.sleep(15)
             update_mongo(filename)
             st.success("MONGODB UPDATED SUCCESSFULLY")
             st.snow()
@@ -346,10 +358,12 @@ if c !="":
 
                     
     if sql_b:
+        try:
             table_insert(filename)
             st.success("DATA UPLOADED TO SQL SUCESSFULLY")
-            #st.snow()
-            #st.error("DATA UPLOAD TO DB FAILED")
+            st.snow()
+        except:
+            st.error("DATA UPLOAD TO DB FAILED")
             
        
 query_list=["                                                          ",
