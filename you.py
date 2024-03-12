@@ -18,7 +18,7 @@ import time as t
 class project: 
     # def __init__(self):
     #connection
-    api_key=''
+    api_key='AIzaSyDV-c1x7Q3_izB_W-tDJWv4-szsE_BkOWw'
     api_service_name = "youtube"
     api_version = "v3"
     youtube = googleapiclient.discovery.build(
@@ -203,7 +203,7 @@ def create_dump(chn_out,filename):
          json.dump(chn_out, js)
 #creating database youtube1 ,in that creating collection named youtubedata and writing json data to MONGODB
 def update_mongo(doc_name):
-    uri = "mongodb+srv://username:password@cluster0.d8lqkub.mongodb.net/?retryWrites=true&w=majority"
+    uri = "mongodb+srv://yaazhisai:yaazhguvi@cluster0.d8lqkub.mongodb.net/?retryWrites=true&w=majority"
 
     # Create a new client and connect to the server
     client = MongoClient(uri, server_api=ServerApi('1'))
@@ -239,16 +239,16 @@ def sql_connection():
     )
     mycursor=mydb.cursor(buffered=True)
 
-    mycursor.execute("CREATE DATABASE ss3")
-    mycursor.execute("USE ss3")
-    mycursor.execute("CREATE TABLE Channel(channel_id VARCHAR(255) PRIMARY KEY,channel_name VARCHAR(255),channel_type VARCHAR(255),channel_views INT,channel_description TEXT,channel_status VARCHAR(255))")
+    mycursor.execute("CREATE DATABASE data1")
+    mycursor.execute("USE data1")
+    mycursor.execute("CREATE TABLE Channel(channel_id VARCHAR(255) PRIMARY KEY,channel_name VARCHAR(255),channel_type VARCHAR(255),channel_views INT,channel_description TEXT,channel_status VARCHAR(255),video_count INT)")
     mycursor.execute("CREATE TABLE Playlist(playlist_id VARCHAR(255) PRIMARY KEY,channelid VARCHAR(255),FOREIGN KEY(channelid)REFERENCES Channel(channel_id),playlist_name VARCHAR(255))")
     mycursor.execute("CREATE TABLE Video(video_id VARCHAR(255) PRIMARY KEY,playlistid VARCHAR(255),FOREIGN KEY(playlistid)REFERENCES Playlist(playlist_id),video_name VARCHAR(255),\
                    video_description TEXT,published_date DATETIME,view_count INT,like_count INT,favourite_count INT,comment_count INT,duration INT,thumbnail VARCHAR(255),caption_status VARCHAR(255))")
     mycursor.execute("CREATE TABLE Comment (comment_id VARCHAR(255) PRIMARY KEY,videoid VARCHAR(255),FOREIGN KEY(videoid)REFERENCES Video(video_id),comment_text TEXT,comment_author VARCHAR(255),comment_published_date DATETIME)")
     
     #print("DATABASE AND TABLE CREATED SUCCESSFULLY")
-
+# sql_connection()
 # inserting values into table
 def table_insert(doc_name):
     mydb=mysql.connector.connect(
@@ -258,7 +258,7 @@ def table_insert(doc_name):
 )
     mycursor=mydb.cursor(buffered=True)
 
-    mycursor.execute("USE ss3")
+    mycursor.execute("USE data1")
 
 
 
@@ -269,14 +269,15 @@ def table_insert(doc_name):
             mydict=json.loads(i)
         
 
-    query1="INSERT INTO Channel (channel_id,channel_name,channel_type,channel_views,channel_description,channel_status)\
-                VALUES(%s,%s,%s,%s,%s,%s)"
+    query1="INSERT INTO Channel (channel_id,channel_name,channel_type,channel_views,channel_description,channel_status,video_count)\
+                VALUES(%s,%s,%s,%s,%s,%s,%s)"
     mycursor.execute(query1,(mydict['Channel']["Channel_Name"]['channel_id'],\
                     mydict['Channel']["Channel_Name"]['channel_name'],\
                     mydict['Channel']["Channel_Name"]['channel_type'],\
                     mydict['Channel']["Channel_Name"]['channel_view'],\
                     mydict['Channel']["Channel_Name"]['channel_info'],\
-                    mydict['Channel']["Channel_Name"]['channel_status']))
+                    mydict['Channel']["Channel_Name"]['channel_status'],
+                    mydict['Channel']['Channel_Name']['video_count']))
     mydb.commit()
 
     query2="INSERT INTO Playlist(playlist_id,channelid,playlist_name)VALUES(%s,%s,%s)"
@@ -339,8 +340,8 @@ if c !="":
 
     if chan_b:
         try:
-            with st.spinner("loading"):
-                t.sleep(15)
+            with st.spinner("Loading the Channel details....."):
+                t.sleep(10)
             st.json(out['Channel'])
             st.snow()
         except:
@@ -350,6 +351,8 @@ if c !="":
         create_dump(out,filename)
         try:
             update_mongo(filename)
+            with st.spinner("Updating in progress....."):
+                t.sleep(15)
             st.success("MONGODB UPDATED SUCCESSFULLY")
             st.snow()
         except:
@@ -357,10 +360,12 @@ if c !="":
 
                     
     if sql_b:
+        try:
             table_insert(filename)
             st.success("DATA UPLOADED TO SQL SUCESSFULLY")
-            #st.snow()
-            #st.error("DATA UPLOAD TO DB FAILED")
+            st.snow()
+        except:
+            st.error("DATA UPLOAD TO DB FAILED")
             
        
 query_list=["                                                          ",
@@ -382,7 +387,7 @@ mydb=mysql.connector.connect(
         password=""
 )
 mycursor=mydb.cursor(buffered=True)
-mycursor.execute("USE ss3")
+mycursor.execute("USE data1")
 with st.container():
     option=st.selectbox('SELECT THE QUERY',query_list)
     if option=='1.What are the names of all the videos and their corresponding channels?':
@@ -407,7 +412,7 @@ with st.container():
         df=pd.DataFrame(out, columns=['Video Name', 'Comment Count'])
         st.write(df)
     elif option=='5.Which videos have the highest number of likes, and what are their corresponding channel names?':
-        mycursor.execute("select Channel.channel_name,Video.video_name, Video.like_count from Channel JOIN Video ON Channel.channel_id=Video.channel_id ORDER BY Video.like_count DESC")
+        mycursor.execute("select Channel.channel_name,Video.video_name, Video.like_count from Playlist JOIN Video ON Playlist.playlist_id= Video.playlistid JOIN Channel ON Channel_id=Playlist.channelid ORDER BY Video.like_count DESC")
         out=mycursor.fetchall()
         df=pd.DataFrame(out, columns=['Channel Name', 'Video Name', 'Like Count'])
         st.write(df)
@@ -438,3 +443,11 @@ with st.container():
         out=mycursor.fetchall()
         df=pd.DataFrame(out, columns=['Channel Name', 'Comment Count'])
         st.write(df)
+
+
+         
+
+
+    
+
+        
