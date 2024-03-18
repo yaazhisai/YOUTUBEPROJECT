@@ -104,13 +104,13 @@ class project:
                     emp_s=emp_s+","+Video_Id
                 else:
                     emp_s=emp_s+Video_Id
-                next_page_token=response1.get('nextPageToken')
+            next_page_token=response1.get('nextPageToken')
 
-                request2=self.youtube.videos().list(
-                part="snippet,statistics,contentDetails",
-                id=emp_s
-                )
-                response2=request2.execute()
+            request2=self.youtube.videos().list(
+            part="snippet,statistics,contentDetails",
+            id=emp_s
+            )
+            response2=request2.execute()
              # For every videoid,we are getting all the details.
                 
             for i in response2['items']:
@@ -296,31 +296,35 @@ def table_insert(doc_name):
 
     vc=int(mydict['Channel']['Channel_Name']['video_count'])
 
-    for i in range(vc):
-        mycursor.execute(query3,(mydict['Videos'][f'Video_Id_{i+1}']['Video_Id'],\
-                        mydict['Playlist']['playlistid'],\
-                        mydict['Videos'][f'Video_Id_{i+1}']['Video_Name'],\
-                        mydict['Videos'][f'Video_Id_{i+1}']['Video_Description'],\
-                        mydict['Videos'][f'Video_Id_{i+1}']['PublishedAt'],\
-                        mydict['Videos'][f'Video_Id_{i+1}']['View_Count'],\
-                        mydict['Videos'][f'Video_Id_{i+1}']['Like_Count'],\
-                        mydict['Videos'][f'Video_Id_{i+1}']['Favorite_Count'],\
-                        mydict['Videos'][f'Video_Id_{i+1}']['Comment_Count'],\
-                        mydict['Videos'][f'Video_Id_{i+1}']['Duration'],\
-                        mydict['Videos'][f'Video_Id_{i+1}']['Thumbnail'],\
-                        mydict['Videos'][f'Video_Id_{i+1}']['Caption_Status']))
-        mydb.commit()
-
-        # Ignore errors in case there are no comments for videos
-        try:
-            for j in range(len(mydict['Videos'][f'Video_Id_{i+1}']['Comments'])):
-                mycursor.execute(query4,(mydict['Videos'][f'Video_Id_{i+1}']['Comments'][f'Comment_Id_{j+1}']['Comment_Id'],\
-                                    mydict['Videos'][f'Video_Id_{i+1}']['Video_Id'],\
-                                    mydict['Videos'][f'Video_Id_{i+1}']['Comments'][f'Comment_Id_{j+1}']['Comment_Text'],\
-                                    mydict['Videos'][f'Video_Id_{i+1}']['Comments'][f'Comment_Id_{j+1}']['Comment_Author'],\
-                                    mydict['Videos'][f'Video_Id_{i+1}']['Comments'][f'Comment_Id_{j+1}']['Comment_PublishedAt']))
-
-                mydb.commit()
+    try:
+        for i in range(vc):
+            mycursor.execute(query3,(mydict['Videos'][f'Video_Id_{i+1}']['Video_Id'],\
+                            mydict['Playlist']['playlistid'],\
+                            mydict['Videos'][f'Video_Id_{i+1}']['Video_Name'],\
+                            mydict['Videos'][f'Video_Id_{i+1}']['Video_Description'],\
+                            mydict['Videos'][f'Video_Id_{i+1}']['PublishedAt'],\
+                            mydict['Videos'][f'Video_Id_{i+1}']['View_Count'],\
+                            mydict['Videos'][f'Video_Id_{i+1}']['Like_Count'],\
+                            mydict['Videos'][f'Video_Id_{i+1}']['Favorite_Count'],\
+                            mydict['Videos'][f'Video_Id_{i+1}']['Comment_Count'],\
+                            mydict['Videos'][f'Video_Id_{i+1}']['Duration'],\
+                            mydict['Videos'][f'Video_Id_{i+1}']['Thumbnail'],\
+                            mydict['Videos'][f'Video_Id_{i+1}']['Caption_Status']))
+            mydb.commit()
+    
+            # Ignore errors in case there are no comments for videos
+            try:
+                for j in range(len(mydict['Videos'][f'Video_Id_{i+1}']['Comments'])):
+                    mycursor.execute(query4,(mydict['Videos'][f'Video_Id_{i+1}']['Comments'][f'Comment_Id_{j+1}']['Comment_Id'],\
+                                        mydict['Videos'][f'Video_Id_{i+1}']['Video_Id'],\
+                                        mydict['Videos'][f'Video_Id_{i+1}']['Comments'][f'Comment_Id_{j+1}']['Comment_Text'],\
+                                        mydict['Videos'][f'Video_Id_{i+1}']['Comments'][f'Comment_Id_{j+1}']['Comment_Author'],\
+                                        mydict['Videos'][f'Video_Id_{i+1}']['Comments'][f'Comment_Id_{j+1}']['Comment_PublishedAt']))
+    
+                    mydb.commit()
+            except:
+                pass
+        
         except:
             pass
 
